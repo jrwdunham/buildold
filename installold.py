@@ -423,26 +423,28 @@ def install_PIL():
                 ANSI_ENDC))
 
 
-def install_Ffmpeg_dependencies():
+def install_FFmpeg_dependencies():
     stdout = aptget(['libavcodec-extra-52', 'libavdevice-extra-52',
         'libavfilter-extra-0', 'libavformat-extra-52', 'libavutil-extra-49',
         'libpostproc-extra-51', 'libswscale-extra-0'])
     print stdout
-    print 'Ffmpeg dependencies installed.'
+    print 'FFmpeg dependencies installed.'
 
 
-def install_Ffmpeg():
-    """Install Ffmpeg.
+def install_FFmpeg():
+    """Install FFmpeg.
 
     TODO: verify .wav to .ogg and .wav to .mp3 conversion
 
     """
 
-    if not which('ffmpeg'):
-        install_Ffmpeg_dependencies()
+    if which('ffmpeg'):
+        print 'FFmpeg is already installed.'
+    else:
+        install_FFmpeg_dependencies()
         stdout = aptget(['ffmpeg'])
         print stdout
-        print 'Ffmpeg installed.'
+        print 'FFmpeg installed.'
 
 
 def wget(url):
@@ -672,7 +674,7 @@ def install():
     install_mysql_python()
     install_importlib()
     install_PIL()
-    # install_Ffmpeg()
+    install_FFmpeg()
     # install_foma()
     # install_mitlm()
 
