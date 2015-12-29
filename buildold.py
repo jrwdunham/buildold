@@ -466,7 +466,7 @@ def validate_mysql_credentials(params):
     also check if we have sufficient privileges to do what we need to do.
 
     WARNING: requiring that the output to 'SHOW GRANTS;' contain "GRANT ALL
-    PRIVILEGES ON *.* TO 'oldadmin'" might be too stringent.
+    PRIVILEGES ON *.* TO '<mysql-user>'" might be too stringent.
 
     """
 
@@ -477,7 +477,7 @@ def validate_mysql_credentials(params):
     if 'Access denied' in stdout:
         sys.exit('%sSorry, we cannot access MySQL with user %s and the provided'
             ' password.%s' % (ANSI_FAIL, params['mysql_user'], ANSI_ENDC))
-    elif "GRANT ALL PRIVILEGES ON *.* TO 'oldadmin'" not in stdout:
+    elif "GRANT ALL PRIVILEGES ON *.* TO '%s'" % params['mysql_user'] not in stdout:
         print 'INSUFF PRIV'
         sys.exit('%sSorry, user %s does not have sufficient MySQL privileges to'
             ' build an OLD.%s' % (ANSI_FAIL, params['mysql_user'], ANSI_ENDC))
