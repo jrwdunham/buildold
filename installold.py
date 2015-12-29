@@ -132,6 +132,7 @@ import os
 import sys
 import shutil
 import urllib
+import urllib2
 import optparse
 import getpass
 import pprint
@@ -217,6 +218,10 @@ def get_easy_install_path():
 
 def get_pip_path():
     return os.path.join(get_home(), 'env', 'bin', 'pip')
+
+
+def get_python_path():
+    return os.path.join(get_home(), 'env', 'bin', 'python')
 
 
 def create_env():
@@ -333,16 +338,16 @@ def get_system_python_version():
 def install_mysql_python():
     """ `$ ./env/bin/easy_install MySQL-python`
 
-    sudo apt-get install libmysqlclient-dev
-    FOX
-
     """
 
-    if not library_installed('libmysqlclient'):
-        aptget(['libmysqlclient-dev', 'python-dev'])
+    aptget(['libmysqlclient-dev', 'python-dev'])
     stdout = shell([get_easy_install_path(), 'MySQL-python'])
-    print stdout
-    print 'MySQL-python installed.'
+    try:
+        assert 'Finished processing dependencies for MySQL-python' in stdout
+        print 'MySQL-python installed.'
+    except AssertionError:
+        sys.exit('%s.Failed to install MySQL-python.%s' % (
+            ANSI_FAIL, ANSI_ENDC))
 
 
 def install_importlib():
@@ -350,8 +355,12 @@ def install_importlib():
         import importlib
     except ImportError:
         stdout = shell([get_easy_install_path(), 'importlib'])
-        print stdout
-        print 'importlib installed.'
+        try:
+            assert 'Finished processing dependencies for importlib' in stdout
+            print 'importlib installed.'
+        except AssertionError:
+            sys.exit('%sFailed to install importlib.%s' % (ANSI_FAIL,
+                ANSI_ENDC))
 
 
 def library_installed(name):
@@ -372,16 +381,14 @@ def install_PIL_dependencies():
 
     stdout = aptget(['libjpeg-dev', 'libfreetype6', 'libfreetype6-dev',
         'zlib1g-dev'])
-    print stdout
     print 'PIL dependencies installed.'
 
 
 def install_PIL():
-    """Install PIL::
-
-        $ ./env/bin/pip install PIL --allow-external PIL --allow-unverified PIL
+    """Install PIL from source.
 
     TODO: verify .png, .jpg, and .gif scaling/thumbnailing
+    wget
 
     """
 
@@ -390,10 +397,30 @@ def install_PIL():
         print 'PIL already installed'
     except ImportError:
         install_PIL_dependencies()
-        stdout = shell([get_pip_path(), 'install', 'PIL', '--allow-external',
-            'PIL', '--allow-unverified', 'PIL'])
-        print stdout
-        print 'PIL installed.'
+        pilpath = os.path.join(get_home(), 'Imaging-1.1.7.tar.gz')
+        pildirpath = os.path.join(get_home(), 'Imaging-1.1.7')
+        fname, headers = urllib.urlretrieve(
+            'http://effbot.org/downloads/Imaging-1.1.7.tar.gz', pilpath)
+        if not os.path.isfile(pilpath):
+            sys.exit('%sUnable to download PIL. Aborting.%s' % (ANSI_FAIL,
+                ANSI_ENDC))
+        tar = tarfile.open(pilpath, mode='r:gz')
+        tar.extractall(path=get_home())
+        tar.close()
+        if not os.path.isdir(pildirpath):
+            sys.exit('%sUnable to extract PIL. Aborting.%s' % (ANSI_FAIL,
+                ANSI_ENDC))
+        stdout = shell([get_python_path(), 'setup.py', 'build_ext', '-i'],
+            pildirpath)
+        stdout = shell([get_python_path(), 'selftest.py'], pildirpath)
+        stdout = shell([get_python_path(), 'setup.py', 'install'],
+            pildirpath)
+        try:
+            assert 'SETUP SUMMARY' in stdout
+            print 'PIL installed.'
+        except AssertionError:
+            sys.exit('%sFailed to install PIL. Aborting.%s' % (ANSI_FAIL,
+                ANSI_ENDC))
 
 
 def install_Ffmpeg_dependencies():
@@ -643,8 +670,8 @@ def install():
     create_env()
     install_old()
     install_mysql_python()
-    # install_importlib()
-    # install_PIL()
+    install_importlib()
+    install_PIL()
     # install_Ffmpeg()
     # install_foma()
     # install_mitlm()
