@@ -295,7 +295,7 @@ def get_system_python_version():
                 ' Your system Python is version %s. Please install Python 2.6 or'
                 ' 2.7 using .pyenv prior to using this install script.'
                 ' Aborting.%s' % (ANSI_FAIL, version, ANSI_ENDC))
-    else
+    else:
         sys.exit('%sWarning, the OLD was developed on Python 2.6 and 2.7.'
             ' Your system Python is version %s. Please install Python 2.6 or'
             ' 2.7 using .pyenv prior to using this install script.'
