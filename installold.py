@@ -141,6 +141,17 @@ import tarfile
 from subprocess import Popen, PIPE, STDOUT
 
 
+# ANSI escape sequences for formatting command-line output.
+ANSI_HEADER = '\033[95m'
+ANSI_OKBLUE = '\033[94m'
+ANSI_OKGREEN = '\033[92m'
+ANSI_WARNING = '\033[93m'
+ANSI_FAIL = '\033[91m'
+ANSI_ENDC = '\033[0m'
+ANSI_BOLD = '\033[1m'
+ANSI_UNDERLINE = '\033[4m'
+
+
 def which(program):
     """Return the path to `program` if it is an executable; otherwise return
     `None`. From
@@ -215,9 +226,17 @@ def create_env():
 
     if which('virtualenv'):
         path = os.path.join(get_home(), 'env')
+        if os.path.isfile(os.path.join(path, 'bin', 'python')):
+            print 'A virtual environment already exists at %s.' % path
+            return
         stdout = shell(['virtualenv', '--no-site-packages', path])
-        print stdout
-        print 'Created env/.'
+        # print stdout
+        try:
+            assert 'New python executable in ' in stdout
+            print 'Created virtual environment in %s.' % path
+        except AssertionError:
+            sys.exit('%sFailed to create a new virtual environment in'
+               ' %s.%s' % (ANSI_FAIL, path, ANSI_ENDC))
     else:
         sys.exit('%sUnable to create a virtual environment: `virtualenv` is not'
             ' installed.%s' % (ANSI_FAIL, ANSI_ENDC))
@@ -247,9 +266,14 @@ def install_virtualenv():
         print 'virtualenv is already installed.'
         return
     if which('easy_install'):
-        stdout = shell(['easy_install', 'virtualenv'])
-        print stdout
-        print 'Installed virtualenv.'
+        stdout = shell(['sudo', 'easy_install', 'virtualenv'])
+        # print stdout
+        try:
+            assert 'Finished processing dependencies for virtualenv' in stdout
+            print 'Installed virtualenv.'
+        except AssertionError:
+            sys.exit('%sFailed to install virtualenv. Aborting.%s' % (
+               ANSI_FAIL, ANSI_ENDC))
     else:
         sys.exit('%seasy_install is not installed. Aborting.%s' % (ANSI_FAIL,
             ANSI_ENDC))
@@ -275,8 +299,12 @@ def install_old():
     """
 
     stdout = shell([get_easy_install_path(), 'onlinelinguisticdatabase'])
-    print stdout
-    print 'Online Linguistic Database installed'
+    try:
+        assert ('Finished processing dependencies for'
+            ' onlinelinguisticdatabase') in stdout
+        print 'Online Linguistic Database installed'
+    except AssertionError:
+        sys.exit('%sFailed to install the OLD.%s' % (ANSI_FAIL, ANSI_ENDC))
 
 
 def get_system_python_version():
@@ -305,8 +333,13 @@ def get_system_python_version():
 def install_mysql_python():
     """ `$ ./env/bin/easy_install MySQL-python`
 
+    sudo apt-get install libmysqlclient-dev
+    FOX
+
     """
 
+    if not library_installed('libmysqlclient'):
+        aptget(['libmysqlclient-dev', 'python-dev'])
     stdout = shell([get_easy_install_path(), 'MySQL-python'])
     print stdout
     print 'MySQL-python installed.'
@@ -327,7 +360,7 @@ def library_installed(name):
     """
 
     stdout = shell(['ldconfig', '-p', '|', 'grep', name])
-    if stdout.strip()
+    if stdout.strip():
         return True
     return False
 
@@ -355,7 +388,7 @@ def install_PIL():
     try:
         import Image
         print 'PIL already installed'
-    except ImportError
+    except ImportError:
         install_PIL_dependencies()
         stdout = shell([get_pip_path(), 'install', 'PIL', '--allow-external',
             'PIL', '--allow-unverified', 'PIL'])
@@ -610,11 +643,11 @@ def install():
     create_env()
     install_old()
     install_mysql_python()
-    install_importlib()
-    install_PIL()
-    install_Ffmpeg()
-    install_foma()
-    install_mitlm()
+    # install_importlib()
+    # install_PIL()
+    # install_Ffmpeg()
+    # install_foma()
+    # install_mitlm()
 
 
 def main():
