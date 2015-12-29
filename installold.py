@@ -200,11 +200,11 @@ def get_home():
     return os.path.expanduser('~')
 
 
-def get_easy_install_path()
+def get_easy_install_path():
     return os.path.join(get_home(), 'env', 'bin', 'easy_install')
 
 
-def get_pip_path()
+def get_pip_path():
     return os.path.join(get_home(), 'env', 'bin', 'pip')
 
 
@@ -493,7 +493,7 @@ def install_flex():
     print 'flex installed'
 
 
-def install_subversion()
+def install_subversion():
     """
     $ sudo apt-get install subversion
     """
