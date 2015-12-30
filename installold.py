@@ -764,14 +764,25 @@ def install_foma():
 
 def install_mitlm():
     """
+    Something like the following finally allowed me to install MITLM. Note that
+    I ran some of these with sudo, which may have been a bad idea.::
 
-    $ svn checkout http://mitlm.googlecode.com/svn/trunk/ mitlm
-    $ svn checkout http://mitlm.googlecode.com/svn/trunk/@46 mitlm
-    $ cd mitlm
+        $ sudo apt-get install autoconf automake libtool gfortran
+        $ wget https://mitlm.googlecode.com/files/mitlm-0.4.1.tar.gz
+        $ tar -zxvf mitlm-0.4.1.tar.gz
+        $ cd mitlm-0.4.1
+        $ ./configure
+        $ make
+        $ make install
+        $ sudo ldconfig
 
-    $ sudo apt-get install autoconf automake libtool gfortran
+    This is wrong::
 
-    $ make -j
+        $ svn checkout http://mitlm.googlecode.com/svn/trunk/ mitlm
+        $ svn checkout http://mitlm.googlecode.com/svn/trunk/@46 mitlm
+        $ cd mitlm
+        $ sudo apt-get install autoconf automake libtool gfortran
+        $ make -j
 
     """
 
