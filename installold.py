@@ -228,6 +228,14 @@ def get_script_dir_path():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def get_tmp_path():
+    return os.path.join(get_script_dir_path(), 'tmp')
+
+
+def get_log_path():
+    return os.path.join(get_script_dir_path(), 'log')
+
+
 def create_env():
     """Create the Python virtual environment in which to install the OLD.
 
@@ -238,11 +246,13 @@ def create_env():
         if os.path.isfile(os.path.join(path, 'bin', 'python')):
             print 'A virtual environment already exists at %s.' % path
             return
+        print 'Creating a virtual environment in %s ...' % path,
         stdout = shell(['virtualenv', '--no-site-packages', path])
         # print stdout
+        log('create-env.log', stdout)
         try:
             assert 'New python executable in ' in stdout
-            print 'Created virtual environment in %s.' % path
+            print 'Done.'
         except AssertionError:
             sys.exit('%sFailed to create a new virtual environment in'
                ' %s.%s' % (ANSI_FAIL, path, ANSI_ENDC))
@@ -275,8 +285,9 @@ def install_virtualenv():
         print 'virtualenv is already installed.'
         return
     if which('easy_install'):
+        print 'Installing virtualenv ...',
         stdout = shell(['sudo', 'easy_install', 'virtualenv'])
-        # print stdout
+        log('install-virtualenv.log', stdout)
         try:
             assert 'Finished processing dependencies for virtualenv' in stdout
             print 'Installed virtualenv.'
@@ -294,10 +305,14 @@ def install_easy_install():
 
     """
 
-    if not which('easy_install'):
+    if which('easy_install'):
+        print 'easy_install is already installed.'
+    else:
+        print 'Installing easy_install ...',
         stdout = aptget(['python-setuptools'])
-        print stdout
-        print 'Installed easy_install'
+        log('install-easy-install.log', stdout)
+        # TODO: inspect stdout to see if install worked.
+        print 'Done.'
 
 
 def install_old():
@@ -307,11 +322,15 @@ def install_old():
 
     """
 
+    if old_installed():
+        print 'OLD is already installed.'
+        return
+    print 'Installing OLD ...',
     stdout = shell([get_easy_install_path(), 'onlinelinguisticdatabase'])
     try:
         assert ('Finished processing dependencies for'
             ' onlinelinguisticdatabase') in stdout
-        print 'Online Linguistic Database installed'
+        print 'Done.'
     except AssertionError:
         sys.exit('%sFailed to install the OLD.%s' % (ANSI_FAIL, ANSI_ENDC))
 
@@ -344,27 +363,32 @@ def install_mysql_python():
 
     """
 
+    if mysql_python_installed():
+        print 'MySQL-python is already installed.'
+        return
+    print 'Installing MySQL-python ...',
     aptget(['libmysqlclient-dev', 'python-dev'])
     stdout = shell([get_easy_install_path(), 'MySQL-python'])
     try:
         assert 'Finished processing dependencies for MySQL-python' in stdout
-        print 'MySQL-python installed.'
+        print 'Done.'
     except AssertionError:
         sys.exit('%s.Failed to install MySQL-python.%s' % (
             ANSI_FAIL, ANSI_ENDC))
 
 
 def install_importlib():
+    if importlib_installed():
+        print 'importlib is already installed.'
+        return
+    print 'Installing importlib ...',
+    stdout = shell([get_easy_install_path(), 'importlib'])
     try:
-        import importlib
-    except ImportError:
-        stdout = shell([get_easy_install_path(), 'importlib'])
-        try:
-            assert 'Finished processing dependencies for importlib' in stdout
-            print 'importlib installed.'
-        except AssertionError:
-            sys.exit('%sFailed to install importlib.%s' % (ANSI_FAIL,
-                ANSI_ENDC))
+        assert 'Finished processing dependencies for importlib' in stdout
+        print 'Done.'
+    except AssertionError:
+        sys.exit('%sFailed to install importlib.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
 
 
 def library_installed(name):
@@ -385,7 +409,28 @@ def install_PIL_dependencies():
 
     stdout = aptget(['libjpeg-dev', 'libfreetype6', 'libfreetype6-dev',
         'zlib1g-dev'])
-    print 'PIL dependencies installed.'
+    log('install-PIL-dependencies.log', stdout)
+
+
+def old_installed():
+    stdout = shell([get_python_path(), '-c', 'import onlinelinguisticdatabase'])
+    if stdout.strip():
+        return False
+    return True
+
+
+def importlib_installed():
+    stdout = shell([get_python_path(), '-c', 'import importlib'])
+    if stdout.strip():
+        return False
+    return True
+
+
+def mysql_python_installed():
+    stdout = shell([get_python_path(), '-c', 'import MySQLdb'])
+    if stdout.strip():
+        return False
+    return True
 
 
 def pil_installed():
@@ -404,34 +449,41 @@ def install_PIL():
     """
 
     if pil_installed():
-        print 'PIL is already installed'
-    else:
-        print 'need to install PIL'
-        install_PIL_dependencies()
-        pilpath = os.path.join(get_home(), 'Imaging-1.1.7.tar.gz')
-        pildirpath = os.path.join(get_home(), 'Imaging-1.1.7')
-        fname, headers = urllib.urlretrieve(
-            'http://effbot.org/downloads/Imaging-1.1.7.tar.gz', pilpath)
-        if not os.path.isfile(pilpath):
-            sys.exit('%sUnable to download PIL. Aborting.%s' % (ANSI_FAIL,
-                ANSI_ENDC))
-        tar = tarfile.open(pilpath, mode='r:gz')
-        tar.extractall(path=get_home())
-        tar.close()
-        if not os.path.isdir(pildirpath):
-            sys.exit('%sUnable to extract PIL. Aborting.%s' % (ANSI_FAIL,
-                ANSI_ENDC))
-        stdout = shell([get_python_path(), 'setup.py', 'build_ext', '-i'],
-            pildirpath)
-        stdout = shell([get_python_path(), 'selftest.py'], pildirpath)
-        stdout = shell([get_python_path(), 'setup.py', 'install'],
-            pildirpath)
-        try:
-            assert 'SETUP SUMMARY' in stdout
-            print 'PIL installed.'
-        except AssertionError:
-            sys.exit('%sFailed to install PIL. Aborting.%s' % (ANSI_FAIL,
-                ANSI_ENDC))
+        print 'PIL is already installed.'
+        return
+
+    print 'Installing PIL ...',
+    install_PIL_dependencies()
+    pilpath = os.path.join(get_home(), 'Imaging-1.1.7.tar.gz')
+    pildirpath = os.path.join(get_home(), 'Imaging-1.1.7')
+    fname, headers = urllib.urlretrieve(
+        'http://effbot.org/downloads/Imaging-1.1.7.tar.gz', pilpath)
+    if not os.path.isfile(pilpath):
+        sys.exit('%sUnable to download PIL. Aborting.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
+    tar = tarfile.open(pilpath, mode='r:gz')
+    tar.extractall(path=get_home())
+    tar.close()
+    if not os.path.isdir(pildirpath):
+        sys.exit('%sUnable to extract PIL. Aborting.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
+    logtext = ['Ran `setup.py build_ext -i` in PIL\n\n']
+    stdout = shell([get_python_path(), 'setup.py', 'build_ext', '-i'],
+        pildirpath)
+    logtext.append(stdout)
+    logtext.append('\n\nRan `selftext.py` in PIL\n\n')
+    stdout = shell([get_python_path(), 'selftest.py'], pildirpath)
+    logtext.append(stdout)
+    stdout = shell([get_python_path(), 'setup.py', 'install'],
+        pildirpath)
+    logtext.append(stdout)
+    log('install-PIL.log', '\n'.join(logtext))
+    try:
+        assert 'SETUP SUMMARY' in stdout
+        print 'Done.'
+    except AssertionError:
+        sys.exit('%sFailed to install PIL. Aborting.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
 
 
 def test_PIL():
@@ -445,7 +497,7 @@ def test_PIL():
                 convpth = os.path.join(get_script_dir_path(), 'media', convnm)
                 assert os.path.isfile(convpth)
                 assert os.path.getsize(convpth) < os.path.getsize(origpth)
-            print 'PIL installation working correctly.'
+            print 'PIL is working correctly.'
         except AssertionError:
             print ('%sWarning: the PIL installation does not seem to be able to'
                 ' correctly reduce the size of .jpg, .png and/or .gif'
@@ -463,8 +515,7 @@ def install_FFmpeg_dependencies():
     stdout = aptget(['libavcodec-extra-52', 'libavdevice-extra-52',
         'libavfilter-extra-0', 'libavformat-extra-52', 'libavutil-extra-49',
         'libpostproc-extra-51', 'libswscale-extra-0'])
-    print stdout
-    print 'FFmpeg dependencies installed.'
+    log('install-ffmpeg-dependencies.log', stdout)
 
 
 def install_FFmpeg():
@@ -476,15 +527,19 @@ def install_FFmpeg():
 
     if which('ffmpeg'):
         print 'FFmpeg is already installed.'
-    else:
-        install_FFmpeg_dependencies()
-        stdout = aptget(['ffmpeg'])
-        print stdout
-        print 'FFmpeg installed.'
+        return
+    print 'Installing FFmpeg ...',
+    install_FFmpeg_dependencies()
+    stdout = aptget(['ffmpeg'])
+    log('install-ffmpeg.log', stdout)
+    print 'Done.'
 
 
 def test_FFmpeg():
-    # FOX
+    """Test to make sure that FFmpeg can convert .wav to both .mp3 and .ogg.
+
+    """
+
     wavpth = os.path.join(get_script_dir_path(), 'media', 'sample.wav')
     mp3pth = os.path.join(get_script_dir_path(), 'media', 'sample.mp3')
     oggpth = os.path.join(get_script_dir_path(), 'media', 'sample.ogg')
@@ -510,11 +565,6 @@ def test_FFmpeg():
         os.remove(oggpth)
 
 
-def wget(url):
-    local_filename, headers = urllib.request.urlretrieve(url)
-    return local_filename
-
-
 def install_m4():
     """Install m4, a bison dep, which is a foma dep.
 
@@ -531,31 +581,37 @@ def install_m4():
         print 'm4 is already installed.'
         return
 
+    print 'Installing m4 ...',
     m4path = os.path.join(get_home(), 'm4-1.4.10.tar.gz')
     m4dirpath = os.path.join(get_home(), 'm4-1.4.10')
 
-    fname, headers = urllib.request.urlretrieve(
+    fname, headers = urllib.urlretrieve(
         'ftp://ftp.gnu.org/gnu/m4/m4-1.4.10.tar.gz', m4path)
     if not os.path.isfile(m4path):
         sys.exit('%sUnable to download m4. Aborting.%s' % (ANSI_FAIL,
             ANSI_ENDC))
 
-    out = tarfile.open(m4path, mode='w:gz')
+    tar = tarfile.open(m4path, mode='r:gz')
+    tar.extractall(path=get_home())
+    tar.close()
     if not os.path.isdir(m4dirpath):
         sys.exit('%sUnable to extract m4. Aborting.%s' % (ANSI_FAIL,
             ANSI_ENDC))
 
+    logtext = ['./configure run in m4\n\n']
     stdout = shell(['./configure', '--prefix=/usr/local/m4'], m4dirpath)
-    print stdout
-    print 'm4 configured'
+    logtext.append(stdout)
 
     stdout = shell(['make'], m4dirpath)
-    print stdout
-    print '`make` run in m4'
+    logtext.append(['\n\nmake run in m4\n\n'])
+    logtext.append(stdout)
 
     stdout = shell(['sudo', 'make', 'install'], m4dirpath)
-    print stdout
-    print '`sudo make install` run in m4'
+    logtext.append(['\n\nsudo make install run in m4\n\n'])
+    logtext.append(stdout)
+
+    log('install-m4.log', '\n'.join(logtext))
+    print 'Done.'
 
 
 def install_bison():
@@ -575,33 +631,39 @@ def install_bison():
         print 'bison is already installed.'
         return
 
+    print 'Installing bison ...',
     bisonpath = os.path.join(get_home(), 'bison-2.3.tar.gz')
     bisondirpath = os.path.join(get_home(), 'bison-2.3')
 
-    fname, headers = urllib.request.urlretrieve(
+    fname, headers = urllib.urlretrieve(
         'http://ftp.gnu.org/gnu/bison/bison-2.3.tar.gz', bisonpath)
     if not os.path.isfile(bisonpath):
         sys.exit('%sUnable to download bison. Aborting.%s' % (ANSI_FAIL,
             ANSI_ENDC))
 
-    out = tarfile.open(bisonpath, mode='w:gz')
+    tar = tarfile.open(bisonpath, mode='r:gz')
+    tar.extractall(path=get_home())
+    tar.close()
     if not os.path.isdir(bisondirpath):
         sys.exit('%sUnable to extract bison. Aborting.%s' % (ANSI_FAIL,
             ANSI_ENDC))
 
     os.environ["PATH"] += os.pathsep + '/usr/local/m4/bin/'
 
+    logtext = ['./configure run in bison\n\n']
     stdout = shell(['./configure', '--prefix=/usr/local/bison'], bisondirpath)
-    print stdout
-    print 'bison configured'
+    logtext.append(stdout)
 
     stdout = shell(['make'], bisondirpath)
-    print stdout
-    print '`make` run in bison'
+    logtext.append('\n\n`make` run in bison\n\n')
+    logtext.append(stdout)
 
     stdout = shell(['sudo', 'make', 'install'], bisondirpath)
-    print stdout
-    print '`sudo make install` run in bison'
+    logtext.append('\n\n`sudo make install` run in bison\n\n')
+    logtext.append(stdout)
+
+    log('install-bison.log', '\n'.join(logtext))
+    print 'Done.'
 
 
 def install_flex():
@@ -613,22 +675,33 @@ def install_flex():
     if which('flex'):
         print 'flex is already installed.'
         return
+    print 'Installing flex ...',
     stdout = aptget(['flex'])
-    print stdout
-    print 'flex installed'
+    # print stdout
+    log('install-flex.log', stdout)
+    print 'Done.'
 
 
 def install_subversion():
-    """
-    $ sudo apt-get install subversion
+    """$ sudo apt-get install subversion
+
     """
 
     if which('svn'):
         print 'subversion is already installed.'
         return
+    print 'Installing subversion ...',
     stdout = aptget(['subversion'])
-    print stdout
+    # print stdout
+    log('install-subversion.log', stdout)
     print 'subversion installed'
+
+
+def log(fname, text):
+    if text.strip():
+        path = os.path.join(get_log_path(), fname)
+        with open(path, 'w') as f:
+            f.write(text)
 
 
 def install_foma():
@@ -643,7 +716,7 @@ def install_foma():
 
     """
 
-    if which('foma'):
+    if which('foma') and which('flookup'):
         print 'foma is already installed.'
         return
 
@@ -652,6 +725,7 @@ def install_foma():
     install_flex()
     install_subversion()
 
+    print 'Installing foma ...',
     stdout = shell(['svn', 'co', 'http://foma.googlecode.com/svn/trunk/foma/'],
         get_home())
     print stdout
@@ -692,7 +766,11 @@ def install_mitlm():
     """
 
     $ svn checkout http://mitlm.googlecode.com/svn/trunk/ mitlm
+    $ svn checkout http://mitlm.googlecode.com/svn/trunk/@46 mitlm
     $ cd mitlm
+
+    $ sudo apt-get install autoconf automake libtool gfortran
+
     $ make -j
 
     """
@@ -700,26 +778,21 @@ def install_mitlm():
     if which('estimate-ngram') and which('evaluate-ngram'):
         print 'MITLM is already installed.'
         return
-
+    print 'Installing MITLM ...',
     stdout = shell(['svn', 'checkout', 'http://mitlm.googlecode.com/svn/trunk/',
         'mitlm'], get_home())
-    print stdout
-    print 'MITLM source checked out'
     mitlmdir = os.path.join(get_home(), 'mitlm')
     try:
         assert os.path.isdir(mitlmdir)
     except:
         sys.exit('%sFailed to install MITLM to %s.%s' % (ANSI_FAIL, mitlmdir,
             ANSI_ENDC))
-
     stdout = shell(['make', '-j'], mitlmdir)
-    print stdout
-    print '`make -j` ran in MITLM'
-
+    log('install-mitlm.log', stdout)
     if which('estimate-ngram') and which('evaluate-ngram'):
-        print 'MITLM installed'
+        print 'Done.'
     else:
-        print 'failed to install MITLM'
+        print 'Failed to install MITLM.'
 
 
 def install():
@@ -740,8 +813,8 @@ def install():
     test_PIL()
     install_FFmpeg()
     test_FFmpeg()
-    # install_foma()
-    # install_mitlm()
+    install_foma()
+    install_mitlm()
 
 
 def main():
