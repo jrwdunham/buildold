@@ -224,6 +224,10 @@ def get_python_path():
     return os.path.join(get_home(), 'env', 'bin', 'python')
 
 
+def get_script_dir_path():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
 def create_env():
     """Create the Python virtual environment in which to install the OLD.
 
@@ -384,6 +388,13 @@ def install_PIL_dependencies():
     print 'PIL dependencies installed.'
 
 
+def pil_installed():
+    stdout = shell([get_python_path(), '-c', 'import Image'])
+    if stdout.strip():
+        return False
+    return True
+
+
 def install_PIL():
     """Install PIL from source.
 
@@ -392,10 +403,10 @@ def install_PIL():
 
     """
 
-    try:
-        import Image
-        print 'PIL already installed'
-    except ImportError:
+    if pil_installed():
+        print 'PIL is already installed'
+    else:
+        print 'need to install PIL'
         install_PIL_dependencies()
         pilpath = os.path.join(get_home(), 'Imaging-1.1.7.tar.gz')
         pildirpath = os.path.join(get_home(), 'Imaging-1.1.7')
@@ -423,6 +434,31 @@ def install_PIL():
                 ANSI_ENDC))
 
 
+def test_PIL():
+    if pil_installed():
+        stdout = shell([get_python_path(), 'tests/pil.py'])
+        try:
+            for ext in ('gif', 'png', 'jpg'):
+                orignm = 'sample.%s' % ext
+                origpth = os.path.join(get_script_dir_path(), 'media', orignm)
+                convnm = 'small_sample.%s' % ext
+                convpth = os.path.join(get_script_dir_path(), 'media', convnm)
+                assert os.path.isfile(convpth)
+                assert os.path.getsize(convpth) < os.path.getsize(origpth)
+            print 'PIL installation working correctly.'
+        except AssertionError:
+            print ('%sWarning: the PIL installation does not seem to be able to'
+                ' correctly reduce the size of .jpg, .png and/or .gif'
+                ' files.%s' % (ANSI_WARNING, ANSI_ENDC))
+        for ext in ('gif', 'png', 'jpg'):
+            convnm = 'small_sample.%s' % ext
+            convpth = os.path.join(get_script_dir_path(), 'media', convnm)
+            if os.path.isfile(convpth):
+                os.remove(convpth)
+    else:
+        print 'PIL is not installed'
+
+
 def install_FFmpeg_dependencies():
     stdout = aptget(['libavcodec-extra-52', 'libavdevice-extra-52',
         'libavfilter-extra-0', 'libavformat-extra-52', 'libavutil-extra-49',
@@ -445,6 +481,33 @@ def install_FFmpeg():
         stdout = aptget(['ffmpeg'])
         print stdout
         print 'FFmpeg installed.'
+
+
+def test_FFmpeg():
+    # FOX
+    wavpth = os.path.join(get_script_dir_path(), 'media', 'sample.wav')
+    mp3pth = os.path.join(get_script_dir_path(), 'media', 'sample.mp3')
+    oggpth = os.path.join(get_script_dir_path(), 'media', 'sample.ogg')
+    if os.path.isfile(mp3pth):
+        os.remove(mp3pth)
+    if os.path.isfile(oggpth):
+        os.remove(oggpth)
+    shell(['ffmpeg', '-i', wavpth, mp3pth])
+    shell(['ffmpeg', '-i', wavpth, oggpth])
+    try:
+        assert os.path.isfile(mp3pth)
+        assert os.path.isfile(oggpth)
+        assert os.path.getsize(mp3pth) < os.path.getsize(wavpth)
+        assert os.path.getsize(oggpth) < os.path.getsize(wavpth)
+        print 'FFmpeg is working correctly.'
+    except AssertionError:
+        print ('%sWarning: the FFmpeg install does not appear to be able to'
+            ' convert .wav files to .mp3 and/or .ogg formats.%s' % (
+            ANSI_WARNING, ANSI_ENDC))
+    if os.path.isfile(mp3pth):
+        os.remove(mp3pth)
+    if os.path.isfile(oggpth):
+        os.remove(oggpth)
 
 
 def wget(url):
@@ -674,7 +737,9 @@ def install():
     install_mysql_python()
     install_importlib()
     install_PIL()
+    test_PIL()
     install_FFmpeg()
+    test_FFmpeg()
     # install_foma()
     # install_mitlm()
 
