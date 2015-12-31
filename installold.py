@@ -273,7 +273,7 @@ def shell(cmd_list, cwd=None):
 
 
 def aptget(lib_list):
-    return shell(['sudo', 'apt-get', 'install'] + lib_list)
+    return shell(['sudo', 'apt-get', '-y', 'install'] + lib_list)
 
 
 def install_virtualenv():
@@ -844,18 +844,18 @@ def install():
 
     """
 
-    get_system_python_version()
-    install_easy_install()
-    install_virtualenv()
-    create_env()
-    install_old()
-    install_mysql_python()
-    install_importlib()
-    install_PIL()
-    test_PIL()
-    install_FFmpeg()
-    test_FFmpeg()
-    install_foma()
+    # get_system_python_version()
+    # install_easy_install()
+    # install_virtualenv()
+    # create_env()
+    # install_old()
+    # install_mysql_python()
+    # install_importlib()
+    # install_PIL()
+    # test_PIL()
+    # install_FFmpeg()
+    # test_FFmpeg()
+    # install_foma()
     install_mitlm()
 
 
