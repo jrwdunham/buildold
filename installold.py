@@ -773,7 +773,7 @@ def install_mitlm():
         $ cd mitlm-0.4.1
         $ ./configure
         $ make
-        $ make install
+        $ sudo make install
         $ sudo ldconfig
 
     This is wrong::
@@ -786,6 +786,37 @@ def install_mitlm():
 
     """
 
+    if which('estimate-ngram') and which('evaluate-ngram'):
+        print 'MITLM is already installed.'
+        return
+    print 'Installing MITLM ...',
+    stdout = aptget(['autoconf', 'automake', 'libtool', 'gfortran'])
+    log('install-mitlm-libraries.log', stdout)
+    mitlmpath = os.path.join(get_home(), 'mitlm-0.4.1.tar.gz')
+    mitlmdirpath = os.path.join(get_home(), 'mitlm-0.4.1')
+    fname, headers = urllib.urlretrieve(
+        'https://mitlm.googlecode.com/files/mitlm-0.4.1.tar.gz', mitlmpath)
+    if not os.path.isfile(mitlmpath):
+        sys.exit('%sUnable to download MITLM. Aborting.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
+    tar = tarfile.open(mitlmpath, mode='r:gz')
+    tar.extractall(path=get_home())
+    tar.close()
+    if not os.path.isdir(mitlmdirpath):
+        sys.exit('%sUnable to extract MITLM. Aborting.%s' % (ANSI_FAIL,
+            ANSI_ENDC))
+    stdout = shell(['./configure'], mitlmdirpath)
+    log('configure-mitlm.log', stdout)
+    stdout = shell(['make'], mitlmdirpath)
+    log('make-mitlm.log', stdout)
+    stdout = shell(['sudo', 'make', 'install'], mitlmdirpath)
+    log('sudo-make-install-mitlm.log', stdout)
+    stdout = shell(['sudo', 'ldconfig'], mitlmdirpath)
+    log('sudo-ldconfig-mitlm.log', stdout)
+    print 'Done.'
+
+
+def install_mitlm_old():
     if which('estimate-ngram') and which('evaluate-ngram'):
         print 'MITLM is already installed.'
         return
