@@ -500,14 +500,14 @@ def install_PIL_dependencies():
 
         $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
         $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
-        $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/ligz.so /usr/lib/
+        $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
 
     """
 
     stdout = aptget(['libjpeg-dev', 'libfreetype6', 'libfreetype6-dev',
         'zlib1g-dev'])
     log('install-PIL-dependencies.log', stdout)
-    if get_linux_id() is 'Ubuntu' and get_linux_release() is '12.04':
+    if get_linux_id() == 'Ubuntu' and get_linux_release() == '12.04':
         shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/libfreetype.so', '/usr/lib/'])
         shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/libjpeg.so', '/usr/lib/'])
         shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/ligz.so', '/usr/lib/'])
