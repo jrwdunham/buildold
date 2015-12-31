@@ -2,6 +2,30 @@
   Build OLD
 ================================================================================
 
+This project contains two Python scripts to be used as command-line tools:
+
+1. installold.py installs the OLD (on Ubuntu 10.04, at least)
+2. buildold.py builds OLDs once the OLD software is installed.
+
+
+installold.py
+================================================================================
+
+A command line utility for installing the OLD, on Ubuntu 10.04. Additional
+platforms may be supported in future versions.
+
+
+Usage
+--------------------------------------------------------------------------------
+
+To install the OLD::
+
+    $ ./installold.py
+
+
+buildold.py
+================================================================================
+
 A command line utility for building (and serving) OLD applications. The server
 that this is run on must already have the OLD software
 (https://github.com/jrwdunham/old) and all of its dependencies installed. This
@@ -19,7 +43,7 @@ is what `buildold` does:
 
 
 Usage
-================================================================================
+--------------------------------------------------------------------------------
 
 To build and serve an OLD called "bla" (e.g., for Blackfoot)::
 
@@ -43,7 +67,7 @@ To destroy an OLD that was built using this script::
 
 
 Dependencies
-================================================================================
+--------------------------------------------------------------------------------
 
 Python-crontab (https://pypi.python.org/pypi/python-crontab) should be
 installed if you want the OLD-restart cronjob to be created for you. But the
@@ -51,7 +75,7 @@ script will still work without it.
 
 
 Warnings
-================================================================================
+--------------------------------------------------------------------------------
 
 1. This script assumes that you are serving OLDs on a Debian/Ubuntu Linux
    server; it currently (probably) won't work on Mac or RHEL/CentOS. It
@@ -63,6 +87,7 @@ Warnings
    this.
 
 
+
 TODOs
 ================================================================================
 
@@ -71,8 +96,4 @@ TODOs
     - stop serving an OLD and redirect requests to a notification page.
 
     - start serving an already-built OLD that has been stopped.
-
-2. Create a separate executable to install/uninstall/update the OLD software
-   and its dependencies.
-
 
