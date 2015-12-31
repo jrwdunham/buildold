@@ -671,10 +671,10 @@ def install_m4():
     stdout = shell(['./configure', '--prefix=/usr/local/m4'], m4dirpath)
     logtext.append(stdout)
     stdout = shell(['make'], m4dirpath)
-    logtext.append(['\n\nmake run in m4\n\n'])
+    logtext.append('\n\nmake run in m4\n\n')
     logtext.append(stdout)
     stdout = shell(['sudo', 'make', 'install'], m4dirpath)
-    logtext.append(['\n\nsudo make install run in m4\n\n'])
+    logtext.append('\n\nsudo make install run in m4\n\n')
     logtext.append(stdout)
     log('install-m4.log', '\n'.join(logtext))
     if which('m4'):
