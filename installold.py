@@ -164,19 +164,21 @@ def clear_log():
 
     """
     for fname in os.listdir(get_log_path()):
-        path = os.path.join(get_log_path(), fname)
-        if os.path.isfile(path):
-            os.remove(path)
+        if fname[0] != '.':
+            path = os.path.join(get_log_path(), fname)
+            if os.path.isfile(path):
+                os.remove(path)
 
 
 def clear_tmp():
     """Remove all files in ./tmp/
 
     """
-    for fname in os.listdir(get_log_path()):
-        path = os.path.join(get_log_path(), fname)
-        if os.path.isfile(path):
-            os.remove(path)
+    for fname in os.listdir(get_tmp_path()):
+        if fname[0] != '.':
+            path = os.path.join(get_tmp_path(), fname)
+            if os.path.isfile(path):
+                os.remove(path)
 
 
 def which(program):
