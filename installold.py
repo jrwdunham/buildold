@@ -205,6 +205,14 @@ def which(program):
     return None
 
 
+def get_linux_id():
+    return shell(['lsb_release', '-is']).strip()
+
+
+def get_linux_release():
+    return shell(['lsb_release', '-rs']).strip()
+
+
 def library_installed(name):
     """Return `True` if the Linux library identifiable by `name` is installed.
 
@@ -488,11 +496,21 @@ def install_importlib():
 def install_PIL_dependencies():
     """sudo apt-get install libjpeg-dev libfreetype6 libfreetype6-dev zlib1g-dev
 
+    If we're using Ubuntu 12.04, we need to run::
+
+        $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
+        $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
+        $ sudo ln -s /usr/lib/`uname -i`-linux-gnu/ligz.so /usr/lib/
+
     """
 
     stdout = aptget(['libjpeg-dev', 'libfreetype6', 'libfreetype6-dev',
         'zlib1g-dev'])
     log('install-PIL-dependencies.log', stdout)
+    if get_linux_id() is 'Ubuntu' and get_linux_release() is '12.04':
+        shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/libfreetype.so', '/usr/lib/'])
+        shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/libjpeg.so', '/usr/lib/'])
+        shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/ligz.so', '/usr/lib/'])
 
 
 def install_PIL():
