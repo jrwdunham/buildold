@@ -887,6 +887,19 @@ def install_mitlm():
             ' install it on your system.')
 
 
+def install_libmagic():
+    """sudo apt-get install libmagic-dev
+
+    TODO: test for success.
+
+    """
+
+    flush('Installing libmagic ...')
+    stdout = aptget(['libmagic-dev'])
+    log('install-libmagic.log', stdout)
+    print 'Done.'
+
+
 def install(params):
     """Install the OLD and all of its dependencies.
 
@@ -919,6 +932,7 @@ def install(params):
     install_subversion()
     install_foma()
     install_mitlm()
+    install_libmagic()
 
 
 def main():
