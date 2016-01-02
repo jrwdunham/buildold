@@ -190,8 +190,43 @@ def write_updated_virtual_hosts_file_to_tmp(params):
     # Write the new virtual hosts file to /tmp/, including any previously
     # existing proxying statements.
     with open(tmp_vhs_path, 'w') as fo:
-        fo.write('''NameVirtualHost *:80
+        fo.write('''<IfModule mod_ssl.c>
+<VirtualHost *:443>
+	ServerName %s:443
+	ServerAlias %s:443
 
+	# Logfiles
+	ErrorLog %s/log/error.log
+	CustomLog %s/log/access.log combined
+
+	SSLEngine on
+	SSLCertificateFile %s
+	SSLCertificateKeyFile %s
+
+	# Proxy
+        %s
+	ProxyPreserveHost On
+	<Proxy *>
+		Order deny,allow
+		Allow from all
+	</Proxy>
+
+</VirtualHost>
+</IfModule>
+            ''' % (params['host'], params['host'], params['apps_path'],
+                    params['apps_path'], params['ssl_crt_path'], 
+                    params['ssl_key_path'], proxy_lines))
+
+    return tmp_vhs_path
+
+
+def get_http_virtual_host_file(params, proxy_lines):
+    """Use this to return a string representing an Apache virtual hosts file
+    for an HTTP domain.
+
+    """
+
+    return '''NameVirtualHost *:80
 <VirtualHost *:80>
     ServerName %s
     ServerAlias %s
@@ -209,9 +244,7 @@ def write_updated_virtual_hosts_file_to_tmp(params):
     </Proxy>
 </VirtualHost>
             ''' % (params['host'], params['host'], params['apps_path'],
-                    params['apps_path'], proxy_lines))
-
-    return tmp_vhs_path
+                    params['apps_path'], proxy_lines)
 
 
 @catcherror
@@ -374,7 +407,8 @@ def add_optparser_options(parser):
         metavar="CONFIG_FILE",
         help="Path to a JSON file containing an object with any of the"
             " following keys: 'mysql_user', 'paster_path', 'apps_path',"
-            " 'vh_path', or 'host'. If present, these values will be used when"
+            " 'vh_path', 'host', 'ssl_crt_path', or 'ssl_key_path'. If"
+            " present, these values will be used when"
             " their corresponding options are not supplied.")
 
     parser.add_option("--paster_path", dest="paster_path",
@@ -407,6 +441,14 @@ def add_optparser_options(parser):
             action="store_true", default=False, metavar="LIST",
             help="Print a list of all OLDs that have been installed here by"
             " buildold.py.")
+
+    parser.add_option("--ssl-crt-path", dest="ssl_crt_path",
+        metavar="SSL_CRT_PATH",
+        help="Path to your SSL .crt file.")
+
+    parser.add_option("--ssl-key-path", dest="ssl_key_path",
+        metavar="SSL_KEY_PATH",
+        help="Path to your SSL .key file.")
 
 
 def get_config_from_file(options):
@@ -508,6 +550,8 @@ def get_params():
         'paster_path': options.paster_path or conf.get('paster_path'),
         'apps_path': options.apps_path or conf.get('apps_path'),
         'vh_path': options.vh_path or conf.get('vh_path'),
+        'ssl_crt_path': options.ssl_crt_path or conf.get('ssl_crt_path'),
+        'ssl_key_path': options.ssl_key_path or conf.get('ssl_key_path'),
         'host': options.host or conf.get('host'),
         'destroy': options.destroy,
         'list': options.list,
@@ -604,6 +648,22 @@ def get_params():
             ' nothing:%s ' % (ANSI_WARNING, default, ANSI_ENDC))
         if not p['vh_path']:
             p['vh_path'] = default
+
+    # Prompt the user for the SSL .crt file path, if we don't have it yet.
+    if not p['ssl_crt_path']:
+        p['ssl_crt_path'] = raw_input('%sPlease enter the absolute path to'
+            ' your SSL .crt file:%s ' % (ANSI_WARNING, ANSI_ENDC))
+        if not p['ssl_crt_path']:
+            sys.exit('%sYou must provide a SSL .crt file path%s' % (ANSI_FAIL,
+                ANSI_ENDC))
+
+    # Prompt the user for the SSL .key file path, if we don't have it yet.
+    if not p['ssl_key_path']:
+        p['ssl_key_path'] = raw_input('%sPlease enter the absolute path to'
+            ' your SSL .key file:%s ' % (ANSI_WARNING, ANSI_ENDC))
+        if not p['ssl_key_path']:
+            sys.exit('%sYou must provide a SSL .key file path%s' % (ANSI_FAIL,
+                ANSI_ENDC))
 
     return p, global_state
 
@@ -735,7 +795,6 @@ def serve(params):
     try:
         assert resp.strip() == ''
         params['actions'].append('served app')
-        # QUESTION: how do we serve an OLD on https?
     except:
         print resp
         abort(params)
@@ -1180,7 +1239,7 @@ def build(params):
     init_script(params)
     save_state(params)
 
-    print ('The %s OLD is being served at %shttp://%s/%s%s.\nIts files are'
+    print ('The %s OLD is being served at %shttps://%s/%s%s.\nIts files are'
         ' stored at %s%s%s.' % (params['old_name'], ANSI_OKGREEN, params['host'],
         params['old_dir_name'], ANSI_ENDC, ANSI_OKGREEN,
         os.path.join(params['apps_path'], params['old_dir_name']), ANSI_ENDC))
@@ -1318,7 +1377,7 @@ def list_built(global_state):
     if global_state:
         print '%sOLDs built here by this script:%s' % (ANSI_HEADER, ANSI_ENDC)
         for old in global_state:
-            print '%s%s%s in %s being served at %shttp://%s/%s%s.' % (
+            print '%s%s%s in %s being served at %shttps://%s/%s%s.' % (
                 ANSI_OKGREEN, old['old_name'], ANSI_ENDC, old['old_path'],
                 ANSI_OKGREEN, old['host'], old['old_dir_name'], ANSI_ENDC)
     else:
