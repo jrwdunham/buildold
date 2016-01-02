@@ -227,16 +227,13 @@ def library_installed(name):
 def add_optparser_options(parser):
     """Add options to the optparser parser.
 
-    Example::
-
-        parser.add_option("--mysql-username", dest="mysql_user",
-            metavar="MYSQL_USER",
-            help="The username of a MySQL user that can create and drop"
-            " databases, alter them, and perform CRUD operations on tables.")
-
     """
 
-    pass
+    parser.add_option("--env-dir", dest="env_dir",
+        metavar="ENV_DIR",
+        help="The name of the virtual environment directory that the OLD"
+            " is/will be installed in (in your home directory). Defaults"
+            " to 'env'.")
 
 
 def get_params():
@@ -249,7 +246,10 @@ def get_params():
     parser = optparse.OptionParser(usage)
     add_optparser_options(parser)
     (options, args) = parser.parse_args()
-    return (options, args)
+    params = {
+        'env_dir': options.env_dir or 'env'
+    }
+    return params
 
 
 def get_home():
@@ -260,28 +260,28 @@ def get_home():
     return os.path.expanduser('~')
 
 
-def get_easy_install_path():
+def get_easy_install_path(params):
     """Return an absolute path to the easy_install binary in the virtual environment.
 
     """
 
-    return os.path.join(get_home(), 'env', 'bin', 'easy_install')
+    return os.path.join(get_home(), params['env_dir'], 'bin', 'easy_install')
 
 
-def get_pip_path():
+def get_pip_path(params):
     """Return an absolute path to the pip binary in the virtual environment.
 
     """
 
-    return os.path.join(get_home(), 'env', 'bin', 'pip')
+    return os.path.join(get_home(), params['env_dir'], 'bin', 'pip')
 
 
-def get_python_path():
+def get_python_path(params):
     """Return an absolute path to python in the virtual environment.
 
     """
 
-    return os.path.join(get_home(), 'env', 'bin', 'python')
+    return os.path.join(get_home(), params['env_dir'], 'bin', 'python')
 
 
 def get_script_dir_path():
@@ -311,23 +311,23 @@ def get_log_path():
 # Installed Checkers
 ################################################################################
 
-def old_installed():
+def old_installed(params):
     """Return `True` if OLD is installed in ~/env/.
 
     """
 
-    stdout = shell([get_python_path(), '-c', 'import onlinelinguisticdatabase'])
+    stdout = shell([get_python_path(params), '-c', 'import onlinelinguisticdatabase'])
     if stdout.strip():
         return False
     return True
 
 
-def importlib_installed():
+def importlib_installed(params):
     """Return `True` if importlib is installed in ~/env/.
 
     """
 
-    stdout = shell([get_python_path(), '-c', 'import importlib'])
+    stdout = shell([get_python_path(params), '-c', 'import importlib'])
     if stdout.strip():
         return False
     return True
@@ -344,12 +344,12 @@ def mysql_python_installed():
     return True
 
 
-def pil_installed():
+def pil_installed(params):
     """Return `True` if PIL is installed in ~/env/.
 
     """
 
-    stdout = shell([get_python_path(), '-c', 'import Image'])
+    stdout = shell([get_python_path(params), '-c', 'import Image'])
     if stdout.strip():
         return False
     return True
@@ -417,12 +417,12 @@ def install_virtualenv():
             ANSI_FAIL, ANSI_ENDC))
 
 
-def create_env():
+def create_env(params):
     """virtualenv --no-site-packages ~/env
 
     """
 
-    path = os.path.join(get_home(), 'env')
+    path = os.path.join(get_home(), params['env_dir'])
     if os.path.isfile(os.path.join(path, 'bin', 'python')):
         print 'A virtual environment already exists at %s.' % path
         return
@@ -436,24 +436,24 @@ def create_env():
             ' %s.%s' % (ANSI_FAIL, path, ANSI_ENDC))
 
 
-def install_old():
+def install_old(params):
     """~/env/bin/easy_install onlinelinguisticdatabase
 
     """
 
-    if old_installed():
+    if old_installed(params):
         print 'OLD is already installed.'
         return
     flush('Installing OLD ...')
-    stdout = shell([get_easy_install_path(), 'onlinelinguisticdatabase'])
+    stdout = shell([get_easy_install_path(params), 'onlinelinguisticdatabase'])
     log('install-old.log', stdout)
-    if old_installed():
+    if old_installed(params):
         print 'Done.'
     else:
         sys.exit('%sFailed to install the OLD.%s' % (ANSI_FAIL, ANSI_ENDC))
 
 
-def install_mysql_python():
+def install_mysql_python(params):
     """Method::
 
         $ sudo apt-get -y install libmysqlclient-dev python-dev
@@ -466,7 +466,7 @@ def install_mysql_python():
         return
     flush('Installing MySQL-python ...')
     aptget(['libmysqlclient-dev', 'python-dev'])
-    stdout = shell([get_easy_install_path(), 'MySQL-python'])
+    stdout = shell([get_easy_install_path(params), 'MySQL-python'])
     log('install-mysql-python.log', stdout)
     if mysql_python_installed():
         print 'Done.'
@@ -475,18 +475,18 @@ def install_mysql_python():
             ANSI_FAIL, ANSI_ENDC))
 
 
-def install_importlib():
+def install_importlib(params):
     """~/env/bin/easy_install importlib
 
     """
 
-    if importlib_installed():
+    if importlib_installed(params):
         print 'importlib is already installed.'
         return
     flush('Installing importlib ...')
-    stdout = shell([get_easy_install_path(), 'importlib'])
+    stdout = shell([get_easy_install_path(params), 'importlib'])
     log('install-importlib.log', stdout)
-    if importlib_installed():
+    if importlib_installed(params):
         print 'Done.'
     else:
         sys.exit('%sFailed to install importlib.%s' % (ANSI_FAIL,
@@ -513,7 +513,7 @@ def install_PIL_dependencies():
         shell(['sudo', 'ln', '-s', '/usr/lib/`uname -i`-linux-gnu/ligz.so', '/usr/lib/'])
 
 
-def install_PIL():
+def install_PIL(params):
     """Method::
 
         $ wget http://effbot.org/downloads/Imaging-1.1.7.tar.gz
@@ -525,7 +525,7 @@ def install_PIL():
 
     """
 
-    if pil_installed():
+    if pil_installed(params):
         print 'PIL is already installed.'
         return
     flush('Installing PIL ...')
@@ -546,31 +546,31 @@ def install_PIL():
             ANSI_ENDC))
         return
     logtext = ['Ran `setup.py build_ext -i` in PIL\n\n']
-    stdout = shell([get_python_path(), 'setup.py', 'build_ext', '-i'],
+    stdout = shell([get_python_path(params), 'setup.py', 'build_ext', '-i'],
         pildirpath)
     logtext.append(stdout)
     logtext.append('\n\nRan `selftext.py` in PIL\n\n')
-    stdout = shell([get_python_path(), 'selftest.py'], pildirpath)
+    stdout = shell([get_python_path(params), 'selftest.py'], pildirpath)
     logtext.append(stdout)
-    stdout = shell([get_python_path(), 'setup.py', 'install'],
+    stdout = shell([get_python_path(params), 'setup.py', 'install'],
         pildirpath)
     logtext.append(stdout)
     log('install-PIL.log', '\n'.join(logtext))
-    if pil_installed():
+    if pil_installed(params):
         print 'Done.'
     else:
         print 'Failed.'
 
 
-def test_PIL():
+def test_PIL(params):
     """Test whether PIL is working correctly by creating thumbnails of a .jpg,
     a .gif, and a .png.
 
     """
 
-    if pil_installed():
+    if pil_installed(params):
         flush('Testing PIL ...')
-        stdout = shell([get_python_path(), 'tests/pil.py'])
+        stdout = shell([get_python_path(params), 'tests/pil.py'])
         try:
             for ext in ('gif', 'png', 'jpg'):
                 orignm = 'sample.%s' % ext
@@ -887,7 +887,7 @@ def install_mitlm():
             ' install it on your system.')
 
 
-def install():
+def install(params):
     """Install the OLD and all of its dependencies.
 
     Someday: install latex/xetex: `sudo apt-get install texlive-xetex`
@@ -902,15 +902,15 @@ def install():
     # minimally functional.
     install_easy_install()
     install_virtualenv()
-    create_env()
-    install_old()
-    install_mysql_python()
-    install_importlib()
+    create_env(params)
+    install_old(params)
+    install_mysql_python(params)
+    install_importlib(params)
 
     # Soft dependencies: failing to install these is ok, but the OLD won't be
     # fully functional unless all of them are installed.
-    install_PIL()
-    test_PIL()
+    install_PIL(params)
+    test_PIL(params)
     install_FFmpeg()
     test_FFmpeg()
     install_m4()
@@ -922,8 +922,8 @@ def install():
 
 
 def main():
-    options, args = get_params()
-    install()
+    params = get_params()
+    install(params)
 
 
 if __name__ == '__main__':
