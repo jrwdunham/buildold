@@ -192,30 +192,31 @@ def write_updated_virtual_hosts_file_to_tmp(params):
     with open(tmp_vhs_path, 'w') as fo:
         fo.write('''<IfModule mod_ssl.c>
 <VirtualHost *:443>
-	ServerName %s:443
-	ServerAlias %s:443
+    ServerName %s:443
+    ServerAlias %s:443
 
-	# Logfiles
-	ErrorLog %s/log/error.log
-	CustomLog %s/log/access.log combined
+    # Logfiles
+    ErrorLog %s/log/error.log
+    CustomLog %s/log/access.log combined
 
-	SSLEngine on
-	SSLCertificateFile %s
-	SSLCertificateKeyFile %s
+    SSLEngine on
+    SSLCertificateFile %s
+    SSLCertificateKeyFile %s
+    SSLCertificateChainFile %s
 
-	# Proxy
+    # Proxy
         %s
-	ProxyPreserveHost On
-	<Proxy *>
-		Order deny,allow
-		Allow from all
-	</Proxy>
+    ProxyPreserveHost On
+    <Proxy *>
+        Order deny,allow
+        Allow from all
+    </Proxy>
 
 </VirtualHost>
 </IfModule>
             ''' % (params['host'], params['host'], params['apps_path'],
                     params['apps_path'], params['ssl_crt_path'], 
-                    params['ssl_key_path'], proxy_lines))
+                    params['ssl_key_path'], params['ssl_pem_path'], proxy_lines))
 
     return tmp_vhs_path
 
@@ -407,8 +408,8 @@ def add_optparser_options(parser):
         metavar="CONFIG_FILE",
         help="Path to a JSON file containing an object with any of the"
             " following keys: 'mysql_user', 'paster_path', 'apps_path',"
-            " 'vh_path', 'host', 'ssl_crt_path', or 'ssl_key_path'. If"
-            " present, these values will be used when"
+            " 'vh_path', 'host', 'ssl_crt_path', 'ssl_key_path', or"
+            " 'ssl_pem_path'. If present, these values will be used when"
             " their corresponding options are not supplied.")
 
     parser.add_option("--paster_path", dest="paster_path",
@@ -445,6 +446,11 @@ def add_optparser_options(parser):
     parser.add_option("--ssl-crt-path", dest="ssl_crt_path",
         metavar="SSL_CRT_PATH",
         help="Path to your SSL .crt file.")
+
+    parser.add_option("--ssl-pem-path", dest="ssl_pem_path",
+        metavar="SSL_PEM_PATH",
+        help="Path to your SSL .pem file, i.e., the intermediate certificate,"
+            " the one that Apache calls the SSLCertificateChainFile.")
 
     parser.add_option("--ssl-key-path", dest="ssl_key_path",
         metavar="SSL_KEY_PATH",
@@ -552,6 +558,7 @@ def get_params():
         'vh_path': options.vh_path or conf.get('vh_path'),
         'ssl_crt_path': options.ssl_crt_path or conf.get('ssl_crt_path'),
         'ssl_key_path': options.ssl_key_path or conf.get('ssl_key_path'),
+        'ssl_pem_path': options.ssl_pem_path or conf.get('ssl_pem_path'),
         'host': options.host or conf.get('host'),
         'destroy': options.destroy,
         'list': options.list,
@@ -663,6 +670,14 @@ def get_params():
             ' your SSL .key file:%s ' % (ANSI_WARNING, ANSI_ENDC))
         if not p['ssl_key_path']:
             sys.exit('%sYou must provide a SSL .key file path%s' % (ANSI_FAIL,
+                ANSI_ENDC))
+
+    # Prompt the user for the SSL .key file path, if we don't have it yet.
+    if not p['ssl_pem_path']:
+        p['ssl_pem_path'] = raw_input('%sPlease enter the absolute path to'
+            ' your SSL .pem file:%s ' % (ANSI_WARNING, ANSI_ENDC))
+        if not p['ssl_pem_path']:
+            sys.exit('%sYou must provide a SSL .pem file path%s' % (ANSI_FAIL,
                 ANSI_ENDC))
 
     return p, global_state
