@@ -440,9 +440,16 @@ def add_optparser_options(parser):
             " CAUTION.")
 
     parser.add_option("--list", dest="list",
-            action="store_true", default=False, metavar="LIST",
-            help="Print a list of all OLDs that have been installed here by"
+        action="store_true", default=False, metavar="LIST",
+        help="Print a list of all OLDs that have been installed here by"
             " buildold.py.")
+
+    parser.add_option("--dative-servers", dest="dative_servers",
+        metavar="DATIVE_SERVERS", help="Specify the path for a JSON file that"
+        " this script should produce; that JSON file will summarize the OLD"
+        " instances that are being served by this script; this JSON summary can"
+        " be served by Dative as servers.json so that Dative's default servers"
+        " match those being served here.")
 
     parser.add_option("--ssl-crt-path", dest="ssl_crt_path",
         metavar="SSL_CRT_PATH",
@@ -563,12 +570,13 @@ def get_params():
         'host': options.host or conf.get('host'),
         'destroy': options.destroy,
         'list': options.list,
+        'dative_servers': options.dative_servers,
         'actions': [] # remembers what we've done, in case abort needed.
     }
 
     # If the user wants to list all of the OLDs installed, we exit here--don't
     # need a name.
-    if p['list']:
+    if p['list'] or p['dative_servers']:
         return p, global_state
 
     # Prompt user for an OLD name if we don't have one.
@@ -1425,10 +1433,41 @@ def list_built(global_state):
             ANSI_HEADER, ANSI_ENDC)
 
 
+def create_dative_servers_file(params, global_state):
+    """Create a JSON file summarizing the OLD instances being served by this
+    build script. This file can be served by a Dative web site in order to
+    define the default available servers.
+
+    """
+
+    path = params['dative_servers']
+    if os.path.isfile(path):
+        r = raw_input('There is already a file at %s. Do you want to overwrite'
+            ' it?')
+        if r not in ['y', 'Y']:
+            sys.exit('%sDative servers file was NOT written at %s.%s' % (
+                ANSI_WARNING, path, ANSI_ENDC))
+    with open(path, 'w') as fo:
+        servers = []
+        for old in global_state:
+            old_dict = {
+                'name': '% OLD' % old['old_name'].capitalize(),
+                'type': 'OLD',
+                'url': 'https://%s/%s' % (old['host'], old['db_name']),
+                'serverCode': None,
+                'corpusServerURL': None,
+                'website': 'http://www.onlinelinguisticdatabase.org'
+            }
+        servers.append(old_dict)
+        json.dump(servers, fo, indent=4, sort_keys=True)
+
+
 def main():
     params, global_state = get_params()
     if params['list']:
         list_built(global_state)
+    if params['dative_servers']:
+        create_dative_servers_file(params, global_state)
     elif params['destroy']:
         destroy(params, global_state)
     else:
