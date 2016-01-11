@@ -1443,7 +1443,7 @@ def create_dative_servers_file(params, global_state):
     path = params['dative_servers']
     if os.path.isfile(path):
         r = raw_input('There is already a file at %s. Do you want to overwrite'
-            ' it?')
+            ' it? ' % path)
         if r not in ['y', 'Y']:
             sys.exit('%sDative servers file was NOT written at %s.%s' % (
                 ANSI_WARNING, path, ANSI_ENDC))
@@ -1451,14 +1451,14 @@ def create_dative_servers_file(params, global_state):
         servers = []
         for old in global_state:
             old_dict = {
-                'name': '% OLD' % old['old_name'].capitalize(),
+                'name': '%s OLD' % old['old_name'].capitalize(),
                 'type': 'OLD',
                 'url': 'https://%s/%s' % (old['host'], old['db_name']),
                 'serverCode': None,
                 'corpusServerURL': None,
                 'website': 'http://www.onlinelinguisticdatabase.org'
             }
-        servers.append(old_dict)
+            servers.append(old_dict)
         json.dump(servers, fo, indent=4, sort_keys=True)
 
 
@@ -1466,7 +1466,7 @@ def main():
     params, global_state = get_params()
     if params['list']:
         list_built(global_state)
-    if params['dative_servers']:
+    elif params['dative_servers']:
         create_dative_servers_file(params, global_state)
     elif params['destroy']:
         destroy(params, global_state)
