@@ -149,6 +149,7 @@ def catcherror(func):
         except Exception, e:
             print ('%sAn error occurred. Aborting.%s' % (ANSI_FAIL,
                 ANSI_ENDC))
+            print e
             abort(params)
             sys.exit('Goodbye.')
     return new_func
@@ -791,7 +792,7 @@ def make_config(params):
         sys.exit(fail_msg)
 
 
-def get_serve_command(params):
+def __get_serve_command__(params):
     """Return the string of the command that serves this OLD.
 
     """
@@ -806,6 +807,21 @@ def get_serve_command(params):
         params['old_path'], params['paster_path'], pid_pth, log_pth, cnf_pth))
 
 
+def get_serve_command(params):
+    """Return an array representing the command that serves this OLD.
+
+    """
+
+    pid_pth = os.path.join(params['old_path'], 'old.pid')
+    log_pth = os.path.join(params['old_path'], 'log', 'paster-old.log')
+    cnf_pth = os.path.join(params['old_path'], 'production.ini')
+    # pid_pth = 'old.pid'
+    # log_pth = os.path.join('log', 'paster-old.log')
+    # cnf_pth = 'production.ini'
+    return [params['paster_path'], 'serve', '--daemon',
+        '--pid-file=%s' % pid_pth, '--log-file=%s' % log_pth, cnf_pth]
+
+
 @catcherror
 def serve(params):
     """Use Python Paster to serve the OLD app in a daemon process.
@@ -814,7 +830,11 @@ def serve(params):
 
     print 'Starting the paster server.'
     cmd = get_serve_command(params)
-    resp = os.popen(cmd).read()
+    print '\n%s\n' % ' '.join(cmd)
+    # resp = os.popen(cmd).read()
+    serve = Popen(cmd, stdout=PIPE, stderr=STDOUT, cwd=params['old_path'])
+    resp, nothing = serve.communicate()
+    # FOX
     try:
         assert resp.strip() == ''
         params['actions'].append('served app')
@@ -832,8 +852,12 @@ def stop_serving(params):
 
     try:
         print 'Stopping the paster server.'
-        cmd = '%s stop' % get_serve_command(params)
-        resp = os.popen(cmd).read()
+        # cmd = '%s stop' % get_serve_command(params)
+        # resp = os.popen(cmd).read()
+        cmd = get_serve_command(params)
+        cmd.append('stop')
+        stopserve = Popen(cmd, stdout=PIPE, stderr=STDOUT, cwd=params['old_path'])
+        resp, nothing = stopserve.communicate()
         try:
             assert resp.strip() == ''
         except Exception, e:
@@ -854,7 +878,8 @@ def get_cronjob_cmd(params):
 
     """
 
-    return '%s start >/dev/null 2>&1' % get_serve_command(params)
+    return 'cd %s; %s start >/dev/null 2>&1' % (params['old_path'],
+        ' '.join(get_serve_command(params)))
 
 
 @catcherror
@@ -1418,7 +1443,7 @@ def create_dative_servers_file(params, global_state):
     path = params['dative_servers']
     if os.path.isfile(path):
         r = raw_input('There is already a file at %s. Do you want to overwrite'
-            ' it?')
+            ' it? ' % path)
         if r not in ['y', 'Y']:
             sys.exit('%sDative servers file was NOT written at %s.%s' % (
                 ANSI_WARNING, path, ANSI_ENDC))
@@ -1426,14 +1451,14 @@ def create_dative_servers_file(params, global_state):
         servers = []
         for old in global_state:
             old_dict = {
-                'name': '% OLD' % old['old_name'].capitalize(),
+                'name': '%s OLD' % old['old_name'].capitalize(),
                 'type': 'OLD',
                 'url': 'https://%s/%s' % (old['host'], old['db_name']),
                 'serverCode': None,
                 'corpusServerURL': None,
                 'website': 'http://www.onlinelinguisticdatabase.org'
             }
-        servers.append(old_dict)
+            servers.append(old_dict)
         json.dump(servers, fo, indent=4, sort_keys=True)
 
 
@@ -1441,7 +1466,7 @@ def main():
     params, global_state = get_params()
     if params['list']:
         list_built(global_state)
-    if params['dative_servers']:
+    elif params['dative_servers']:
         create_dative_servers_file(params, global_state)
     elif params['destroy']:
         destroy(params, global_state)
